@@ -30,6 +30,7 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
+          port: 22
           source: "dist/*"
           target: "/var/www/foresight"
           strip_components: 1
@@ -41,5 +42,6 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
+          port: 22
           script: |
             nginx -t && systemctl restart nginx
