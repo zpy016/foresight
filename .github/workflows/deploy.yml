@@ -30,6 +30,9 @@ jobs:
           SERVER_USER: ${{ secrets.SERVER_USER }}
           SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
         run: |
+          # 清洗 SERVER_IP，去掉可能存在的 http:// 或 https:// 前缀
+          SERVER_IP=$(echo "$SERVER_IP" | sed 's|https\?://||')
+
           # 检查 secrets 是否已设置
           if [ -z "$SERVER_IP" ]; then echo "❌ Error: SERVER_IP secret is not set"; exit 1; fi
           if [ -z "$SERVER_USER" ]; then echo "❌ Error: SERVER_USER secret is not set"; exit 1; fi
