@@ -25,23 +25,27 @@ jobs:
         run: npm run build
 
       - name: 🚀 Deploy to server
-        uses: appleboy/scp-action@v1
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          password: ${{ secrets.SERVER_PASSWORD }}
-          port: 22
-          source: "dist/*"
-          target: "/var/www/foresight"
-          strip_components: 1
-          rm: true
+        env:
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SERVER_PASSWORD: ${{ secrets.SERVER_PASSWORD }}
+        run: |
+          # 检查 secrets 是否已设置
+          if [ -z "$SERVER_IP" ]; then echo "❌ Error: SERVER_IP secret is not set"; exit 1; fi
+          if [ -z "$SERVER_USER" ]; then echo "❌ Error: SERVER_USER secret is not set"; exit 1; fi
+          if [ -z "$SERVER_PASSWORD" ]; then echo "❌ Error: SERVER_PASSWORD secret is not set"; exit 1; fi
 
-      - name: 🔄 Restart Nginx
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ${{ secrets.SERVER_USER }}
-          password: ${{ secrets.SERVER_PASSWORD }}
-          port: 22
-          script: |
-            nginx -t && systemctl restart nginx
+          echo "📤 Installing sshpass..."
+          sudo apt-get update -qq && sudo apt-get install -y -qq sshpass
+
+          echo "📦 Packing dist folder..."
+          cd dist
+          tar czf /tmp/deploy.tar.gz .
+
+          echo "🚀 Uploading and deploying to $SERVER_IP..."
+          export SSHPASS="$SERVER_PASSWORD"
+          sshpass -e scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -P 22 /tmp/deploy.tar.gz "$SERVER_USER@$SERVER_IP:/tmp/"
+          sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p 22 "$SERVER_USER@$SERVER_IP" "mkdir -p /var/www/foresight && cd /var/www/foresight && rm -rf * && tar xzf /tmp/deploy.tar.gz && rm -f /tmp/deploy.tar.gz && nginx -t && systemctl restart nginx"
+
+          rm -f /tmp/deploy.tar.gz
+          echo "✅ Deployment completed!"
